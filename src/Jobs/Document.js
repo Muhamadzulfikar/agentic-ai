@@ -29,7 +29,7 @@ module.exports = async (channel) => {
 
             channel.ack(msg);
         } catch (error) {
-            console.log(error);
+            console.error('Cannot create document', error.message);
             channel.nack(msg, false, false)
         }
     });
