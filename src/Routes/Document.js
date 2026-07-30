@@ -1,7 +1,64 @@
 const express = require('express');
 const machineMiddleware = require('../Middlewares/Machine');
+const Database = require('better-sqlite3');
+const db = new Database('agentic-ai.db');
+const path = require('path');
+const fs = require('fs');
 
 const route = express.Router();
+
+route.get('/:workspaceId', machineMiddleware, (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+
+        const documents = db.prepare('SELECT name, filepath FROM documents WHERE workspace_id = ?').all(workspaceId);
+
+        if (documents.length === 0) {
+            return res.status(200).json({
+                message: 'Sucessfully',
+                documents: []
+            })
+        }
+
+        const workspace = path.join(process.cwd(), 'Storages', workspaceId);
+        let localFiles = [];
+        let s3Files = [];
+
+        if (fs.existsSync(workspace)) {
+            localFiles = fs.readdirSync(workspace);
+        }
+
+        documents.forEach(document => {
+            s3Files = [...s3Files, document.filepath.split('/')[1]];
+        });
+
+        const files = [...new Set([...localFiles, ...s3Files])];
+
+        const data = files.map((file) => {
+            const inLocalFile = localFiles.includes(file);
+            const inS3File = s3Files.includes(file);
+            const name = file.split('-')[0];
+            let status = 'unsync';
+
+            if (inLocalFile && inS3File) {
+                status = 'sync';
+            }
+
+            return {
+                name: name,
+                status: status,
+                filepath: `${workspaceId}/${file}`
+            };
+        });
+
+        return res.status(200).json({
+            message: 'Successfully',
+            documents: data,
+        });
+    } catch (error) {
+        console.error('Cannot get all documents:', error.message);
+    }
+});
 
 route.post('/', machineMiddleware, (req, res) => {
     const { name, type, content, workspaceId } = req.body;
@@ -44,7 +101,7 @@ route.post('/', machineMiddleware, (req, res) => {
 
     channel.sendToQueue(
         'document',
-        Buffer.from(JSON.stringify({ name: name, filepath: filepath, content: content, workspaceId: workspaceId})),
+        Buffer.from(JSON.stringify({ name: name, filepath: filepath, content: content, workspaceId: workspaceId })),
         { persistent: true }
     );
 
