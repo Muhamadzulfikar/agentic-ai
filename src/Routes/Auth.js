@@ -45,10 +45,20 @@ route.post('/machine/register', async (req, res) => {
         });
     }
 
-    const {publicKey, hashedKey} = createApiKey(name, url);
+    const { publicKey, hashedKey } = createApiKey(name, url);
 
-    const statement = db.prepare('INSERT INTO machines (name, url, public_key, hashed_key) VALUES (?, ?, ?, ?)');
-    statement.run(name, url, publicKey, hashedKey);
+
+    const { existKey } = db.prepare(`SELECT EXISTS(SELECT 1 FROM machines WHERE name = ? AND url = ?) AS existKey`)
+        .get(name, url);
+
+    if (Boolean(existKey)) {
+        return res.status(400).json({
+            message: 'Machine Already exist'
+        });
+    }
+
+    db.prepare('INSERT INTO machines (name, url, public_key, hashed_key) VALUES (?, ?, ?, ?)')
+        .run(name, url, publicKey, hashedKey);
 
     return res.status(200).json({
         message: 'Successfully',
