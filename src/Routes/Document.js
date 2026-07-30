@@ -4,10 +4,11 @@ const Database = require('better-sqlite3');
 const db = new Database('agentic-ai.db');
 const path = require('path');
 const fs = require('fs');
+const workspaceMiddleware = require('../Middlewares/Workspace')
 
 const route = express.Router();
 
-route.get('/:workspaceId', machineMiddleware, (req, res) => {
+route.get('/:workspaceId', machineMiddleware, workspaceMiddleware, (req, res) => {
     try {
         const { workspaceId } = req.params;
 
@@ -59,6 +60,23 @@ route.get('/:workspaceId', machineMiddleware, (req, res) => {
         console.error('Cannot get all documents:', error.message);
     }
 });
+
+route.put('/:workspaceId/preview', machineMiddleware, workspaceMiddleware, async (req, res) => {
+    try {
+        const { filepath } = req.body
+
+        const storage = req.app.get('storage');
+
+        const temporaryUrl = await storage.presignedGetObject(process.env.S3_BUCKET, filepath, 3600);
+
+        return res.status(200).json({
+            message: 'Sucessfully',
+            temporaryUrl: temporaryUrl
+        })
+    } catch (error) {
+        console.error('Cannot create temporary url', temporaryUrl);
+    }
+})
 
 route.post('/', machineMiddleware, (req, res) => {
     const { name, type, content, workspaceId } = req.body;
