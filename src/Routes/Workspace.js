@@ -22,7 +22,7 @@ route.get('/', machineMiddleware, (req, res) => {
 
 route.post('/', machineMiddleware, (req, res) => {
     const { hashedKey } = req
-    const { name } = req.body;
+    const { name, workspaceId } = req.body;
 
     if (!name) {
         return res.status(400).json({
@@ -30,7 +30,17 @@ route.post('/', machineMiddleware, (req, res) => {
         })
     }
 
-    const workspaceId = crypto.randomUUID();
+    if (workspaceId) {
+        const existWorkspace = db.prepare('SELECT EXIST(SELECT 1 FROM workspaces WHERE workspace_id = ?)').get(workspaceId);
+
+        if (existWorkspace) {
+            return res.status('400').json({
+                message: `Workspace with id ${workspaceId} already exist`
+            })
+        }
+    } else {
+        workspaceId = crypto.randomUUID();
+    }
 
     const createWorkspace = db.prepare('INSERT INTO workspaces (workspace_id, name, hashed_key) VALUES (?, ?, ?)');
     createWorkspace.run(workspaceId, name, hashedKey);
