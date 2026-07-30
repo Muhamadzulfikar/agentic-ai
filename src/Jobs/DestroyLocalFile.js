@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs/promises');
 
-module.exports = async (channel, storage) => {
+module.exports = async (channel) => {
     const processQueue = 'destroyLocalFile';
     const exchange = 'destroyLocalFileExchange';
     const waitQueue = 'destroyLocalFileWait';
@@ -26,14 +26,11 @@ module.exports = async (channel, storage) => {
 
         try {
             const payload = JSON.parse(msg.content.toString());
-            const { filepath } = payload.data;
+            const { filepath } = payload;
 
-            const localPath = path.join(process.cwd(), 'Storage', filepath);
-            const fileBuffer = await fs.readFile(localPath);
+            const target = path.join(process.cwd(), 'Storage', filepath);
 
-            storage.fputObject(process.env.S3_OBJECT, filepath, fileBuffer);
-
-            await fs.unlink(localPath);
+            await fs.unlink(target);
 
             channel.ack(msg);
 

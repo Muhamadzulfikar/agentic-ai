@@ -38,26 +38,21 @@ route.post('/', machineMiddleware, (req, res) => {
         });
     }
 
-    const filename = `${name}-${crypto.randomUUID()}.${type}`;
+    const filepath = `${workspaceId}/${name}-${crypto.randomUUID()}.${type}`;
 
     const channel = req.app.get('channel');
 
-     const payload = {
-        title: 'Create file into workspace',
-        data: {
-            filename,
-            content,
-            workspaceId
-        },
-        timestamp: new Date().toLocaleTimeString()
-    };
-
     channel.sendToQueue(
         'document',
-        Buffer.from(JSON.stringify(payload)),
+        Buffer.from(JSON.stringify({ filepath: filepath, content: content })),
         { persistent: true }
     );
-    
+
+    channel.sendToQueue(
+        'destroyLocalFileWait',
+        Buffer.from(JSON.stringify({ filepath: filepath }))
+    )
+
     return res.status(200).json({
         message: 'File creation task has been queued up.',
     });

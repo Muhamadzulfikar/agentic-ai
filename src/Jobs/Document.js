@@ -1,10 +1,9 @@
-const crypto = require('crypto');
 const fs = require('fs/promises');
 const path = require('path');
 const Database = require('better-sqlite3');
 const db = new Database('agentic-ai.db');
 
-module.exports = async (channel) => {
+module.exports = async (channel, storage) => {
     await channel.assertQueue('document', { durable: true });
 
     channel.consume('document', async (msg) => {
@@ -12,11 +11,12 @@ module.exports = async (channel) => {
 
         try {
             const payload = JSON.parse(msg.content.toString());
-            const { filename, content, workspaceId } = payload.data;
+            const { filepath, content } = payload;
 
-            const target = path.join(process.cwd(), 'Storage', workspaceId, filename);
-            const filepath = `/${workspaceId}/${filename}`;
-            await fs.writeFile(target, content);
+            const target = path.join(process.cwd(), 'Storage', filepath);
+            const file = await fs.writeFile(target, content);
+
+            storage.fputObject(process.env.S3_OBJECT, filepath, file);
 
             db.prepare(`
                     INSERT INTO documents (
