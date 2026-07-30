@@ -2,3 +2,4 @@
 .env
 *.db
 package-lock.json
+/Storages

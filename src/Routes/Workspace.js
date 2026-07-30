@@ -49,14 +49,17 @@ route.post('/', machineMiddleware, (req, res) => {
     const createWorkspace = db.prepare('INSERT INTO workspaces (workspace_id, name, hashed_key) VALUES (?, ?, ?)');
     createWorkspace.run(id, name, hashedKey);
 
-    const targetFolder = path.join(process.cwd(), 'Storage', id);
+    const storageDir = path.join(process.cwd(), 'Storages');
+    if (!fs.existsSync(storageDir)) {
+        fs.mkdirSync(storageDir, { recursive: true });
+    }
+    const targetFolder = path.join(storageDir, id);
     fs.mkdirSync(targetFolder, { recursive: true });
 
     return res.status(200).json({
         message: 'Workspace created successfully',
         workspaceId: id,
         name: name,
-        targetFolder: targetFolder,
     });
 });
 
