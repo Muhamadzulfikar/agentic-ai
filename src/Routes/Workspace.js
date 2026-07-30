@@ -23,6 +23,7 @@ route.get('/', machineMiddleware, (req, res) => {
 route.post('/', machineMiddleware, (req, res) => {
     const { hashedKey } = req
     const { name, workspaceId } = req.body;
+    let id;
 
     if (!name) {
         return res.status(400).json({
@@ -31,26 +32,29 @@ route.post('/', machineMiddleware, (req, res) => {
     }
 
     if (workspaceId) {
-        const existWorkspace = db.prepare('SELECT EXIST(SELECT 1 FROM workspaces WHERE workspace_id = ?)').get(workspaceId);
+        const { existWorkspace } = db.prepare('SELECT EXISTS(SELECT 1 FROM workspaces WHERE workspace_id = ?) as existWorkspace')
+        .get(workspaceId);
 
-        if (existWorkspace) {
-            return res.status('400').json({
+        if (Boolean(existWorkspace)) {
+            return res.status(400).json({
                 message: `Workspace with id ${workspaceId} already exist`
             })
         }
+
+        id = workspaceId;
     } else {
-        workspaceId = crypto.randomUUID();
+        id = crypto.randomUUID();
     }
 
     const createWorkspace = db.prepare('INSERT INTO workspaces (workspace_id, name, hashed_key) VALUES (?, ?, ?)');
-    createWorkspace.run(workspaceId, name, hashedKey);
+    createWorkspace.run(id, name, hashedKey);
 
-    const targetFolder = path.join(process.cwd(), 'Storage', workspaceId);
+    const targetFolder = path.join(process.cwd(), 'Storage', id);
     fs.mkdirSync(targetFolder, { recursive: true });
 
     return res.status(200).json({
         message: 'Workspace created successfully',
-        workspaceId: workspaceId,
+        workspaceId: id,
         name: name,
         targetFolder: targetFolder,
     });
