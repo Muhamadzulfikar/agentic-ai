@@ -11,12 +11,14 @@ route.post('/admin/login', async (req, res) => {
     if (!email || !password) {
         return res.status(400).json({
             message: 'Email and password are required',
+            token: ''
         });
     }
 
     if (email !== process.env.EMAIL && password !== process.env.PASSWORD) {
         return res.status(400).json({
             message: 'Email and Password is not match',
+            token: ''
         })
     }
 
@@ -34,6 +36,7 @@ route.post('/machine/register', async (req, res) => {
     if (!token) {
         return res.status(401).json({
             message: 'Missing Token',
+            key: '',
         });
     }
 
@@ -42,6 +45,7 @@ route.post('/machine/register', async (req, res) => {
     if (!validate || validate.isExpired) {
         return res.status(401).json({
             message: validate?.isExpired ? 'Token Expired' : 'Unvalided Token',
+            key: '',
         });
     }
 
@@ -87,17 +91,17 @@ async function validateToken(token) {
 }
 
 function createApiKey(name, url, prefix = 'sk-') {
-  const randomBytes = crypto.randomBytes(24).toString('hex');
-  const publicKey = prefix+randomBytes;
+    const randomBytes = crypto.randomBytes(24).toString('hex');
+    const publicKey = prefix + randomBytes;
 
-  const privateKey = publicKey+name+url;
+    const privateKey = publicKey + name + url;
 
-  const hashedKey = crypto
-    .createHash('sha256')
-    .update(privateKey)
-    .digest('hex');
+    const hashedKey = crypto
+        .createHash('sha256')
+        .update(privateKey)
+        .digest('hex');
 
-  return { publicKey, hashedKey };
+    return { publicKey, hashedKey };
 }
 
 
