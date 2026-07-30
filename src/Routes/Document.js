@@ -38,13 +38,14 @@ route.post('/', machineMiddleware, (req, res) => {
         });
     }
 
+    const filename = `${name}-${crypto.randomUUID()}.${type}`;
+
     const channel = req.app.get('channel');
 
      const payload = {
         title: 'Create file into workspace',
         data: {
-            name,
-            type,
+            filename,
             content,
             workspaceId
         },

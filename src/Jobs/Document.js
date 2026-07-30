@@ -12,9 +12,8 @@ module.exports = async (channel) => {
 
         try {
             const payload = JSON.parse(msg.content.toString());
-            const { name, type, content, workspaceId } = payload.data;
+            const { filename, content, workspaceId } = payload.data;
 
-            const filename = `${name}-${crypto.randomUUID()}.${type}`;
             const target = path.join(process.cwd(), 'Storage', workspaceId, filename);
             const filepath = `/${workspaceId}/${filename}`;
             await fs.writeFile(target, content);
