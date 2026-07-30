@@ -16,13 +16,12 @@ app.disable('x-powered-by');
 require('dotenv').config();
 migrate();
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT;
 
 const authRoutes = require('./src/Routes/Auth');
 const workspaceRoutes = require('./src/Routes/Workspace');
 const chatRoutes = require('./src/Routes/Chat');
 const documentRoutes = require('./src/Routes/Document');
-const Minio = require('./src/Services/Minio');
 
 app.use('/api/auth', authRoutes);
 app.use('/v1/chat', chatRoutes);
@@ -41,6 +40,8 @@ async function startServer() {
     const channel = await RabbitMQ();
     const storage = await s3();
     app.set('channel', channel);
+    app.set('storage', storage);
+
     job(channel, storage);
 
     app.listen(port, () => {
