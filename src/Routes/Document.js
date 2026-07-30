@@ -58,4 +58,17 @@ route.post('/', machineMiddleware, (req, res) => {
     });
 });
 
+route.delete('/:id', (req, res) => {
+    const { id } = req.params;
+    try {
+        db.prepare('DELETE FROM documents WHERE id = ?').run(id);
+
+        return res.status(200).json({
+            message: 'Successfully delete document with id ' + id
+        })
+    } catch (error) {
+        console.error('Cannot Delete Document', error.message);
+    }
+});
+
 module.exports = route;
