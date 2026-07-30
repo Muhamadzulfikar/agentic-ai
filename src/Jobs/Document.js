@@ -11,20 +11,20 @@ module.exports = async (channel, storage) => {
 
         try {
             const payload = JSON.parse(msg.content.toString());
-            const { filepath, content } = payload;
+            const { filepath, name, content, workspaceId } = payload;
 
-            const target = path.join(process.cwd(), 'Storage', filepath);
-            const file = await fs.writeFile(target, content);
+            const target = path.join(process.cwd(), 'Storages', filepath);
+            await fs.writeFile(target, content);
 
-            storage.fputObject(process.env.S3_OBJECT, filepath, file);
-
+            await storage.fPutObject(process.env.S3_BUCKET, filepath, target);
+            
             db.prepare(`
-                    INSERT INTO documents (
-                        workspace_id,
-                        name,
-                        filepath
-                    ) VALUES (?, ?, ?)
-                `).run(workspaceId, name, filepath);
+                INSERT INTO documents (
+                    workspace_id,
+                    name,
+                    filepath
+                ) VALUES (?, ?, ?)
+            `).run(workspaceId, name, filepath);
 
             channel.ack(msg);
         } catch (error) {

@@ -44,7 +44,7 @@ route.post('/', machineMiddleware, (req, res) => {
 
     channel.sendToQueue(
         'document',
-        Buffer.from(JSON.stringify({ filepath: filepath, content: content })),
+        Buffer.from(JSON.stringify({ name: name, filepath: filepath, content: content, workspaceId: workspaceId})),
         { persistent: true }
     );
 
