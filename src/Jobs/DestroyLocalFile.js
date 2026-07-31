@@ -30,7 +30,13 @@ module.exports = async (channel) => {
 
             const target = path.join(process.cwd(), 'Storage', filepath);
 
-            await fs.unlink(target);
+            try {
+                await fs.unlink(target);
+            } catch (err) {
+                if (err.code !== 'ENOENT') {
+                    throw err;
+                }
+            }
 
             channel.ack(msg);
 
