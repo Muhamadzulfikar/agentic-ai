@@ -138,26 +138,23 @@ route.get('/:workspaceId/sync', machineMiddleware, workspaceMiddleware, async (r
         const { workspaceId } = req.params;
         const storage = req.app.get('storage');
 
-        const documents = db.prepare('SELECT name, filepath FROM documents WHERE workspace_id = ?').all(workspaceId);
+        const documents = db.prepare('SELECT filepath FROM documents WHERE workspace_id = ?').pluck().all(workspaceId);
 
-        const workspaceDir = path.join(process.cwd(), 'Storages', workspaceId);
+        const workspace = path.join(process.cwd(), 'Storages', workspaceId);
 
-        if (!fs.existsSync(workspaceDir)) {
-            fs.mkdirSync(workspaceDir, { recursive: true });
-        }
-
-        const localFiles = fs.readdirSync(workspaceDir);
+        const localFiles = fs.readdirSync(workspace);
         const pulledFiles = [];
 
-        for (const document of documents) {
-            const fileName = document.filepath.includes('/') ? document.filepath.split('/')[1] : document.filepath;
-            const targetPath = path.join(workspaceDir, fileName);
+        documents.forEach(async (document) => {
+            const name = document.split('/')[1];
 
-            if (!localFiles.includes(fileName)) {
-                await storage.fGetObject(process.env.S3_BUCKET, document.filepath, targetPath);
+            const target = path.join(workspace, fileName);
+
+            if (!localFiles.includes(name)) {
+                await storage.fGetObject(process.env.S3_BUCKET, document, target);
                 pulledFiles.push(fileName);
             }
-        }
+        });
 
         return res.status(200).json({
             message: 'Successfully synced documents',
@@ -166,21 +163,43 @@ route.get('/:workspaceId/sync', machineMiddleware, workspaceMiddleware, async (r
         });
     } catch (error) {
         console.error('Cannot sync documents:', error.message);
-        return res.status(500).json({
-            message: 'Internal server error',
-            error: error.message
-        });
     }
 });
 
-route.delete('/:id', (req, res) => {
-    const { id } = req.params;
+route.delete('/:workspaceId', machineMiddleware, workspaceMiddleware, async (req, res) => {
     try {
-        db.prepare('DELETE FROM documents WHERE id = ?').run(id);
+        const { workspaceId } = req.params;
+        const { filepath } = req.body;
+
+        if (!filepath) {
+            return res.status(400).json({
+                message: 'Filepath is required'
+            });
+        }
+
+        const { valid } = db.prepare('SELECT EXIST(SELECT 1 FROM documents WHERE workspace = ? AND filepath =  ?) as valid')
+            .get(filepath);
+
+        if (!Boolean(valid)) {
+            return res.status(404).json({
+                message: 'Document not found'
+            });
+        }
+
+        db.prepare('DELETE FROM documents WHERE filepath = ? AND workspace_id = ?').run(filepath, workspaceId);
+
+        const storage = req.app.get('storage');
+        await storage.removeObject(process.env.S3_BUCKET, document.filepath);
+
+        const target = path.join(process.cwd(), 'Storages', document.filepath);
+
+        if (fs.existsSync(target)) {
+            fs.unlinkSync(target);
+        }
 
         return res.status(200).json({
-            message: 'Successfully delete document with id ' + id
-        })
+            message: `Successfully deleted document ${filepath}`
+        });
     } catch (error) {
         console.error('Cannot Delete Document', error.message);
     }
