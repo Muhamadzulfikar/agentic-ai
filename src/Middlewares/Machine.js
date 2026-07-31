@@ -3,13 +3,11 @@ const Database = require('better-sqlite3');
 const db = new Database('agentic-ai.db');
 
 module.exports = (req, res, next) => {
-    const { key, app_name, url } = req.headers;
-
-    const privateKey = key + app_name + url;
+    const { key } = req.headers;
 
     const hashedKey = crypto
         .createHash('sha256')
-        .update(privateKey)
+        .update(key)
         .digest('hex');
 
     const { validate } = db.prepare(`SELECT EXISTS(SELECT 1 FROM machines WHERE hashed_key = ?) as validate`)
