@@ -133,6 +133,46 @@ route.post('/', machineMiddleware, (req, res) => {
     });
 });
 
+route.get('/:workspaceId/sync', machineMiddleware, workspaceMiddleware, async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const storage = req.app.get('storage');
+
+        const documents = db.prepare('SELECT name, filepath FROM documents WHERE workspace_id = ?').all(workspaceId);
+
+        const workspaceDir = path.join(process.cwd(), 'Storages', workspaceId);
+
+        if (!fs.existsSync(workspaceDir)) {
+            fs.mkdirSync(workspaceDir, { recursive: true });
+        }
+
+        const localFiles = fs.readdirSync(workspaceDir);
+        const pulledFiles = [];
+
+        for (const document of documents) {
+            const fileName = document.filepath.includes('/') ? document.filepath.split('/')[1] : document.filepath;
+            const targetPath = path.join(workspaceDir, fileName);
+
+            if (!localFiles.includes(fileName)) {
+                await storage.fGetObject(process.env.S3_BUCKET, document.filepath, targetPath);
+                pulledFiles.push(fileName);
+            }
+        }
+
+        return res.status(200).json({
+            message: 'Successfully synced documents',
+            pulledFiles: pulledFiles,
+            totalPulled: pulledFiles.length
+        });
+    } catch (error) {
+        console.error('Cannot sync documents:', error.message);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
 route.delete('/:id', (req, res) => {
     const { id } = req.params;
     try {
