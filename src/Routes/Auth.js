@@ -90,18 +90,25 @@ async function validateToken(token) {
     }
 }
 
-function createApiKey(name, url, prefix = 'sk-') {
-    const randomBytes = crypto.randomBytes(24).toString('hex');
+function createApiKey() {
+    const randomBytes = crypto.randomBytes(32).toString('hex');
     const publicKey = prefix + randomBytes;
 
-    const privateKey = publicKey + name + url;
+    const publicKey = 'sk-' + randomBytes;
 
-    const hashedKey = crypto
+    const hashedKey = crypto.createHash('sha256').update(publicKey).digest('hex');
         .createHash('sha256')
         .update(privateKey)
         .digest('hex');
 
     return { publicKey, hashedKey };
+}
+
+function safeCompare(a, b) {
+    const bufA = Buffer.from(a, 'hex');
+    const bufB = Buffer.from(b, 'hex');
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
 }
 
 
