@@ -18,12 +18,12 @@ migrate();
 
 const port = process.env.PORT;
 
-const authRoutes = require('./src/Routes/Auth');
+const registerRoutes = require('./src/Routes/Register');
 const workspaceRoutes = require('./src/Routes/Workspace');
 const chatRoutes = require('./src/Routes/Chat');
 const documentRoutes = require('./src/Routes/Document');
 
-app.use('/api/auth', authRoutes);
+app.use('/api/registers', registerRoutes);
 app.use('/v1/chat', chatRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/documents', documentRoutes);

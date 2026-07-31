@@ -5,7 +5,7 @@ const db = new Database('agentic-ai.db');
 
 const route = express.Router();
 
-route.post('/register', async (req, res) => {
+route.post('/', async (req, res) => {
     try {
         const { key } = req.headers;
         const {name, url} = req.body;
@@ -42,7 +42,7 @@ route.post('/register', async (req, res) => {
             });
         }
 
-    db.prepare('INSERT INTO machines (name, url, hashed_key) VALUES (?, ?, ?, ?)')
+    db.prepare('INSERT INTO machines (name, url, hashed_key) VALUES (?, ?, ?)')
         .run(name, url, hashedKey);
 
         return res.status(200).json({
